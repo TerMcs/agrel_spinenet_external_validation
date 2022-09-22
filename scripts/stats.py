@@ -68,7 +68,7 @@ def bootstrap_test(metric, y, preds, null_hypothesis, n_bootstrap, seed=12345, s
     ci_l = np.percentile(metric_vals, (100 - alpha) // 2)
     ci_h = np.percentile(metric_vals, alpha + (100 - alpha) // 2)
 
-    return metric_vals, p_value, metric_val, ci_l, ci_h
+    return p_value, metric_val, ci_l, ci_h
 
 
 def ccc(y_true, y_pred):
@@ -153,60 +153,169 @@ def sensitivity(y_true, y_pred):  # Recall, TPR
 
     return tpr
 
-# file = "./data/df.csv"
-file = "./data/previously_untested_subset.csv"
+
+
+
+#### MCs ####
+# If MCs without subgroups, then we are comparing gt_mc_r + gt_mc_c to UpperMarrow + LowerMarrow
+# If MCs size subgroup, then we are comparing gt_mc_r_size_subgroup + gt_mc_c_size_subgroup to UpperMarrow + LowerMarrow
+# If MCs size and lbp then we need the lbp subset and we are comparing gt_mc_r_size_subgroup + gt_mc_c_size_subgroup to UpperMarrow + LowerMarrow in that dataframe
+# NB: MC size subgroup just means that MC of width 1 have been counted as absent in the ground truth (it is not a smaller total number of samples)
+
+def pfirrmann_stats(df, group, level, metric, nir):
+    
+    np_y = df['gt_pf'].astype('int32').to_numpy()
+    np_pred = df['Pfirrmann'].astype('int32').to_numpy()
+
+    # Here, the NIR is calculated from the confusion matrix and then used as the H0 for the metric bootstrap.
+    # Needs to be included below and in the model output as necessary
+    cm = ConfusionMatrix(np_y, np_pred)
+    cm.print_matrix()
+    
+    if nir == 'auto':
+        print('nir calculated from confusion matrix')
+        print(cm.NIR)
+        nir = cm.NIR
+
+    pvalue, metric_val, ci_l, ci_h = bootstrap_test(metric=metric,
+                                                    y=np_y,
+                                                    preds=np_pred,
+                                                    null_hypothesis=nir,  # nir or 0.5
+                                                    n_bootstrap=10000,
+                                                    seed=12345,
+                                                    stratified=True,
+                                                    alpha=95)
+
+    results = [[group, level, metric.__name__, metric_val, ci_l, ci_h, pvalue, nir]]
+    results_df = pd.DataFrame(results, columns = ['group', 'level', 'metric', 'values', 'values_ci_l', 'values_ci_u', 'p_values', 'no_information_rate'])
+    return results_df
+
+def mc_stats(df, group, level, metric, nir): 
+    df = df.dropna(subset=['gt_mc_r'])
+    df = df.dropna(subset=['UpperMarrow'])
+    if group == 'all':
+        np_y_r = df['gt_mc_r'].astype('int32').to_numpy()
+        np_pred_r = df["UpperMarrow"].astype('int32').to_numpy()
+        np_y_c = df['gt_mc_c'].astype('int32').to_numpy()
+        np_pred_c = df["LowerMarrow"].astype('int32').to_numpy()
+    elif group == 'lbp':
+        df_lbp = df[df['lbp'] == 1].copy()
+        np_y_r = df_lbp['gt_mc_r'].astype('int32').to_numpy()
+        np_pred_r = df_lbp["UpperMarrow"].astype('int32').to_numpy()
+        np_y_c = df_lbp['gt_mc_c'].astype('int32').to_numpy()
+        np_pred_c = df_lbp["LowerMarrow"].astype('int32').to_numpy()
+    elif group == 'size':
+        np_y_r = df['gt_mc_r_size_subgroup'].astype('int32').to_numpy()
+        np_pred_r = df["UpperMarrow"].astype('int32').to_numpy()
+        np_y_c = df['gt_mc_c_size_subgroup'].astype('int32').to_numpy()
+        np_pred_c = df["LowerMarrow"].astype('int32').to_numpy()
+    elif group == 'lbp_size':
+        df_lbp = df[df['lbp'] == 1].copy()
+        np_y_r = df_lbp['gt_mc_r_size_subgroup'].astype('int32').to_numpy()
+        np_pred_r = df_lbp["UpperMarrow"].astype('int32').to_numpy()
+        np_y_c = df_lbp['gt_mc_c_size_subgroup'].astype('int32').to_numpy()
+        np_pred_c = df_lbp["LowerMarrow"].astype('int32').to_numpy()
+
+    np_y = np.concatenate([np_y_r, np_y_c])
+    np_pred = np.concatenate([np_pred_r, np_pred_c])
+
+    # Here, the NIR is calculated from the confusion matrix and then used as the H0 for the metric bootstrap.
+    # Needs to be included below and in the model output as necessary
+    cm = ConfusionMatrix(np_y, np_pred)
+    cm.print_matrix()
+    
+    if nir == 'auto':
+        print('nir calculated from confusion matrix')
+        print(cm.NIR)
+        nir = cm.NIR
+
+    pvalue, metric_val, ci_l, ci_h = bootstrap_test(metric=metric,
+                                                    y=np_y,
+                                                    preds=np_pred,
+                                                    null_hypothesis=nir,  # nir or 0.5
+                                                    n_bootstrap=10000,
+                                                    seed=12345,
+                                                    stratified=True,
+                                                    alpha=95)
+
+    results = [[group, level, metric.__name__, metric_val, ci_l, ci_h, pvalue, nir]]
+    results_df = pd.DataFrame(results, columns = ['group', 'level', 'metric', 'values', 'values_ci_l', 'values_ci_u', 'p_values', 'no_information_rate'])
+    return results_df
+
+
+file = "./data/df.csv"
 data = pd.read_csv(file)
 
-# values = []
-# # nir = []      # nir = the no information rate
-# values_ci_l = []
-# values_ci_u = []
-# pvalues = []
-# group = []
+#### Pfirrmann grades ####
 
-data = data.dropna(subset=['gt_mc_r'])
-data = data.dropna(subset=['UpperMarrow'])
+# metrics = [accuracy_score, balanced_accuracy_score, sensitivity_micro, specificity_micro, cohen_kappa_score, matthews_corrcoef, ccc, gwetsac]
+# nirs = ['auto', 0.25, 0.5, 0.5, 0.4, 0.4, 0.4, 0.4]
+# levels = ['all', "L1-L2", "L2-L3", "L3-L4", "L4-L5", "L5-S1"]
+# groups = ['all', 'lbp', 'size', 'lbp_size']
 
-np_y_r = data['gt_mc_r'].astype('int32').to_numpy()
-np_pred_r = data["UpperMarrow"].astype('int32').to_numpy()
-np_y_c = data['gt_mc_c'].astype('int32').to_numpy()
-np_pred_c = data["LowerMarrow"].astype('int32').to_numpy()
+# collated_results = []
 
-np_y = np.concatenate([np_y_r, np_y_c])
-np_pred = np.concatenate([np_pred_r, np_pred_c])
+# for i in range(len(metrics)):
+#     metric = metrics[i]
+#     nir = nirs[i]
 
-# Here, the NIR is calculated from the confusion matrix and then used as the H0 for the metric bootstrap.
-# Needs to be included below and in the model output as necessary
-cm = ConfusionMatrix(np_y, np_pred)
-cm.print_matrix()
-print(cm.NIR)
-# nir = cm.NIR
+#     #### All participants ####
+#     group = 'all'
+#     for level in levels:
+#         if level == 'all':
+#             df = data.copy()
+#             results = pfirrmann_stats(df, group, level, metric, nir)
+#             collated_results.append(results)
+#         else:
+#             df = data[data['Level'] == level].copy()
+#             results = pfirrmann_stats(df, group, level, metric, nir)
+#             collated_results.append(results)
 
-metric = balanced_accuracy_score
+#     #### LBP subgroup ####
+#     group = 'lbp'
+#     lbp = data[data['lbp'] == 1].copy()
+#     for level in levels:
+#         if level == 'all':
+#             df = data.copy()
+#             results = pfirrmann_stats(df, group, level, metric, nir)
+#             collated_results.append(results)
+#         else:
+#             df = lbp[lbp['Level'] == level].copy()
+#             results = pfirrmann_stats(df, group, level, metric, nir)
+#             collated_results.append(results)
 
-metric_vals, pvalue, metric_val, ci_l, ci_h = bootstrap_test(metric=metric,
-                                                                y=np_y, preds=np_pred,
-                                                                null_hypothesis=0.5,  # nir or 0.5
-                                                                n_bootstrap=10000,
-                                                                seed=12345,
-                                                                stratified=True,
-                                                                alpha=95)
+# results = pd.concat(collated_results)
+# results.to_csv('pfirrmann_grading_results.csv')
 
-# group.append(i)
-# values.append(metric_val)
-# values_ci_l.append(ci_l)
-# values_ci_u.append(ci_h)
-# pvalues.append(pvalue)
-# print('nir')
-# print(nir)
-print(str(metric))
-print(metric_val)
-print('ci_l')
-print(ci_l)
-print('ci_h')
-print(ci_h)
-print('pvalue')
-print(pvalue)
+#### Modic changes ####
 
-# results = pd.DataFrame(list(zip(group, values, values_ci_l, values_ci_u, pvalues)),  # ,nirs
-#                         columns=['group', 'values', 'values_ci_l', 'values_ci_u', 'p_values']) 
+metrics = [accuracy_score, balanced_accuracy_score, sensitivity, specificity, cohen_kappa_score, matthews_corrcoef, gwetsac]
+nirs = ['auto', 0.5, 0.5, 0.5, 0.4, 0.4, 0.4]
+levels = ['all', "L1-L2", "L2-L3", "L3-L4", "L4-L5", "L5-S1"]
+groups = ['all', 'lbp', 'size', 'lbp_size']
+
+collated_results = []
+
+for i in range(len(metrics)):
+    metric = metrics[i]
+    
+    nir = nirs[i]
+
+    for j in groups:
+        
+
+        for level in levels:
+            print(metric.__name__)
+            print(j)
+            print(level)
+            if level == 'all':
+                df = data.copy()
+                results = mc_stats(df, group=j, level=level, metric=metric, nir=nir)
+                collated_results.append(results)
+            else:
+                df = data[data['Level'] == level].copy()
+                results = mc_stats(df, group=j, level=level, metric=metric, nir=nir)
+                collated_results.append(results)
+
+results = pd.concat(collated_results)
+results.to_csv('mc_grading_results.csv')
