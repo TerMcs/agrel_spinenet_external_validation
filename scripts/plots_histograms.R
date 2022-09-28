@@ -147,8 +147,9 @@ plot_name <- glue("{output_dir}Modic_change_histograms{filename}.svg")
 library("cowplot")
 pp <- plot_grid(p1, p3,
                 ncol = 1, nrow = 2)
-plot_name <- glue("{output_dir}dd_mc_combined_histograms_{filename}.svg")
-# ggsave(plot_name, plot = pp, width = w, height = 12, units = "in")
+pp
+plot_name <- glue("{output_dir}dd_mc_combined_histograms_{filename}.tiff")
+ggsave(plot_name, plot = pp, width = w, height = 12, units = "in")
 
 ##### Modic change width histogram #####
 
@@ -182,6 +183,43 @@ p5 <- ggplot(data=df_mc_w, aes(x=Level)) +
 print(p5)
 plot_name <- glue("{output_dir}Modic_changes_size_histogram_{filename}.svg")
 # ggsave(plot_name, plot = p5, width = w, height = h, units = "in")
+
+#### Confusion Matrix ####
+library(cvms)
+fs = 1
+intensity_by <- "counts"
+colours <- "Blues"# "normalized"
+font <- "serif"
+base_size <- 20
+w <- 4
+h <- 5
+fs <- 3.5
+fspc <- 6
+
+cm_dd <- confusion_matrix(
+  df_dd_h$Value,
+  df_dd_m$Value,
+  c_levels = NULL,
+  do_one_vs_all = F,
+  parallel = T
+)
+
+cm_dd <- plot_confusion_matrix(cm_dd,
+                               add_row_percentages = F,
+                               add_col_percentages = F,
+                               diag_percentages_only = F,
+                               place_x_axis_above = F,
+                               palette = "normalized",
+                               intensity_by = intensity_by,
+                               theme_fn = ggplot2::theme_minimal,
+                               font_counts = font(size = fs, family = font),
+                               font_normalized = font(size = fspc,family = font),
+                               font_row_percentages = font(family = font),
+                               font_col_percentages = font(family = font),
+                               arrow_size = 0.09,
+                               arrow_nudge_from_text = 0.09,
+                               darkness = 1) 
+print(cm_dd)
 
 #### Model performance metrics Pfirrmann grades ####
 file <- "../data/pfirrmann_grading_results.csv"
@@ -383,6 +421,7 @@ p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
 print(p7)
 plot_name <- glue("{output_dir}mc_metrics_with_sensitivity_and_specificity_{filename}.svg")
 ggsave(plot_name, plot = p7, width = w, height = 5, units = "in")
+
 
 
 
