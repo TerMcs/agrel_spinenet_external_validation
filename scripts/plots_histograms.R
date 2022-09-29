@@ -1,13 +1,14 @@
-setwd("/mnt/sda1/agrel_spinenet_resubmission/scripts")
+# setwd("/mnt/sda1/agrel_spinenet_resubmission/scripts")
+setwd("C:\\Users\\tmcsween21\\OneDrive - Oulun yliopisto\\agrel_spinenet_resubmission")
 
 library(tidyverse)
 library(RColorBrewer)
 library(ggthemes)
 library(glue)
 
-source("old_submission/plot_functions.R")
+source("scripts\\old_submission\\plot_functions.R")
 
-data <- read.csv('../data/df.csv')
+data <- read.csv('data\\df.csv')
 
 print_column_names(data)
 
@@ -25,8 +26,8 @@ base_size <- 20
 w <- 9
 h <- 6
 fs <- 20
-output_dir <- "../figures/"
-filename <- "220927"
+output_dir <- "figures\\"
+filename <- "220928"
 
 show_legend <- TRUE
 legend_position <- "bottom"
@@ -147,8 +148,9 @@ plot_name <- glue("{output_dir}Modic_change_histograms{filename}.svg")
 library("cowplot")
 pp <- plot_grid(p1, p3,
                 ncol = 1, nrow = 2)
-plot_name <- glue("{output_dir}dd_mc_combined_histograms_{filename}.svg")
-# ggsave(plot_name, plot = pp, width = w, height = 12, units = "in")
+print(pp)
+plot_name <- glue("{output_dir}dd_mc_combined_histograms_{filename}.tiff")
+ggsave(plot_name, plot = pp, width = w, height = 12, units = "in", dpi = 1200)
 
 ##### Modic change width histogram #####
 
@@ -180,11 +182,11 @@ p5 <- ggplot(data=df_mc_w, aes(x=Level)) +
   theme(axis.title.x = x_ax_title) +
   theme(axis.text.x = element_text(angle=90))
 print(p5)
-plot_name <- glue("{output_dir}Modic_changes_size_histogram_{filename}.svg")
-# ggsave(plot_name, plot = p5, width = w, height = h, units = "in")
+plot_name <- glue("{output_dir}Modic_changes_size_histogram_{filename}.tiff")
+ggsave(plot_name, plot = p5, width = w, height = h, units = "in", dpi = 1200)
 
 #### Model performance metrics Pfirrmann grades ####
-file <- "../data/pfirrmann_grading_results.csv"
+file <- "data\\pfirrmann_grading_results.csv"
 df <- read.csv(file)
 
 print_column_names(df)
@@ -248,14 +250,14 @@ p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
 print(p6)
-plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_supplementary_material_{filename}.svg")
-# ggsave(plot_name, plot = p6, width = w, height = 9, units = "in")
+plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_supplementary_material_{filename}.tiff")
+# ggsave(plot_name, plot = p6, width = 10, height = h+2, units = "in", dpi = 1200)
 
 
 df3 <- subset(df3, Metric!="Accuracy")
 df3 <- subset(df3, Metric!="Gwet's AC1")
-df3 <- subset(df3, Metric!="Sensitivity")
-df3 <- subset(df3, Metric!="Specificity")
+# df3 <- subset(df3, Metric!="Sensitivity")
+# df3 <- subset(df3, Metric!="Specificity")
 df3 <- subset(df3, Metric!="Matthew's CC")
 
 p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
@@ -276,12 +278,12 @@ p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
 print(p6)
-plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_{filename}.svg")
-ggsave(plot_name, plot = p6, width = w, height = 5, units = "in")
+plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_and_sensitivity_and_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p6, width = w, height = 10, units = "in", dpi = 1200)
 
 #### Model performance metrics Modic changes ####
 
-file <- "../data/mc_grading_results.csv"
+file <- "data\\mc_grading_results.csv"
 df <- read.csv(file)
 
 print_column_names(df)
@@ -351,8 +353,8 @@ p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
 print(p7)
-plot_name <- glue("{output_dir}mc_metrics_supplementary_{filename}.svg")
-# ggsave(plot_name, plot = p7, width = 10, height = h, units = "in")
+plot_name <- glue("{output_dir}mc_metrics_supplementary_{filename}.tiff")
+ggsave(plot_name, plot = p7, width = 10, height = h+2, units = "in", dpi = 1200)
 
 
 df <- subset(df, Group!="LBP sub-group")
@@ -381,8 +383,8 @@ p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
 print(p7)
-plot_name <- glue("{output_dir}mc_metrics_with_sensitivity_and_specificity_{filename}.svg")
-ggsave(plot_name, plot = p7, width = w, height = 5, units = "in")
+plot_name <- glue("{output_dir}mc_metrics_with_sensitivity_and_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p7, width = w, height = 5, units = "in", dpi = 1200)
 
 
 
