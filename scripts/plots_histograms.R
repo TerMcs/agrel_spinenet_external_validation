@@ -63,7 +63,7 @@ p1 <- ggplot(data=df_dd, aes(x=Level, fill=Group)) +
   # scale_fill_brewer(palette = dark2B, guide = guide_legend()) +
   # scale_fill_manual(values = oulu_blue_theme_2, guide = guide_legend()) +
   scale_fill_manual(values = pairedC, guide = guide_legend()) +
-  theme_tufte(base_size = base_size) +
+  theme_tufte() + # base_size = base_size
   theme(legend.position=legend_position) +
   theme(legend.title = legend_title) +
   theme(text = element_text(size = fs)) +
@@ -134,7 +134,7 @@ p3 <- ggplot(data=df_mc, aes(x=Level, fill=Group)) +
   facet_wrap(~Value, nrow = 2) +
   # scale_fill_brewer(palette = colours, guide = guide_legend()) +
   scale_fill_manual(values = pairedC, guide = guide_legend()) +
-  theme_tufte(base_size = base_size) +
+  theme_tufte() + # base_size = base_size
   theme(legend.position=legend_position) +
   theme(legend.title = legend_title) +
   theme(text = element_text(size = fs)) +
@@ -149,7 +149,7 @@ pp <- plot_grid(p1, p3,
                 ncol = 1, nrow = 2)
 pp
 plot_name <- glue("{output_dir}dd_mc_combined_histograms_{filename}.tiff")
-ggsave(plot_name, plot = pp, width = w, height = 12, units = "in")
+ggsave(plot_name, plot = pp, width = w, height = 12, units = "in", dpi = 1200)
 
 ##### Modic change width histogram #####
 
@@ -171,55 +171,67 @@ df_mc_w[df_mc_w == "-"] <- NA
 df_mc_w <- df_mc_w[!(df_mc_w$Value == 0),]
 df_mc_w <- df_mc_w[complete.cases(df_mc_w), ]
 
+df_mc_w$Value[df_mc_w$Value == 1] <- "1 zone"
+df_mc_w$Value[df_mc_w$Value == 2] <- "2 zones"
+df_mc_w$Value[df_mc_w$Value == 3] <- "3 zones"
+df_mc_w$Value[df_mc_w$Value == 4] <- "4 zones"
+df_mc_w$Value[df_mc_w$Value == 5] <- "5 zones"
+df_mc_w$Value[df_mc_w$Value == 6] <- "6 zones"
+df_mc_w$Value[df_mc_w$Value == 7] <- "7 zones"
+df_mc_w$Value[df_mc_w$Value == 8] <- "8 zones"
+df_mc_w$Value[df_mc_w$Value == 9] <- "9 zones"
+
 p5 <- ggplot(data=df_mc_w, aes(x=Level)) +
   geom_histogram(stat = "count", position = 'dodge', color="black",fill="#1F78B4", alpha = 0.8) +
   labs(y = "Count")+
+  ggtitle("Modic change width distribution") +
   scale +
   facet_wrap(~Value) +
   theme_tufte(base_size = base_size) +
   theme(text = element_text(size = fs)) +
   theme(axis.title.x = x_ax_title) +
-  theme(axis.text.x = element_text(angle=90))
+  theme(axis.text.x = element_text(angle=90)) +
+  theme(plot.title = element_text(hjust = 0.5))
 print(p5)
-plot_name <- glue("{output_dir}Modic_changes_size_histogram_{filename}.svg")
-# ggsave(plot_name, plot = p5, width = w, height = h, units = "in")
+plot_name <- glue("{output_dir}Modic_changes_size_histogram_{filename}.tiff")
+ggsave(plot_name, plot = p5, width = w, height = h, units = "in", dpi = 1200)
 
 #### Confusion Matrix ####
-library(cvms)
-fs = 1
-intensity_by <- "counts"
-colours <- "Blues"# "normalized"
-font <- "serif"
-base_size <- 20
-w <- 4
-h <- 5
-fs <- 3.5
-fspc <- 6
-
-cm_dd <- confusion_matrix(
-  df_dd_h$Value,
-  df_dd_m$Value,
-  c_levels = NULL,
-  do_one_vs_all = F,
-  parallel = T
-)
-
-cm_dd <- plot_confusion_matrix(cm_dd,
-                               add_row_percentages = F,
-                               add_col_percentages = F,
-                               diag_percentages_only = F,
-                               place_x_axis_above = F,
-                               palette = "normalized",
-                               intensity_by = intensity_by,
-                               theme_fn = ggplot2::theme_minimal,
-                               font_counts = font(size = fs, family = font),
-                               font_normalized = font(size = fspc,family = font),
-                               font_row_percentages = font(family = font),
-                               font_col_percentages = font(family = font),
-                               arrow_size = 0.09,
-                               arrow_nudge_from_text = 0.09,
-                               darkness = 1) 
-print(cm_dd)
+# library(cvms)
+# fs = 1
+# intensity_by <- "counts"
+# colours <- "Blues"# "normalized"
+# font <- "serif"
+# base_size <- 20
+# w <- 4
+# h <- 5
+# fs <- 3.5
+# fspc <- 6
+# 
+# cm_dd <- confusion_matrix(
+#   df_dd_h$Value,
+#   df_dd_m$Value,
+#   c_levels = NULL,
+#   do_one_vs_all = F,
+#   parallel = T
+# )
+# 
+# cm_dd <- plot_confusion_matrix(cm_dd,
+#                                add_row_percentages = F,
+#                                add_col_percentages = F,
+#                                diag_percentages_only = F,
+#                                place_x_axis_above = F,
+#                                palette = "normalized",
+#                                intensity_by = intensity_by,
+#                                theme_fn = ggplot2::theme_minimal,
+#                                font_counts = font(size = fs, family = font),
+#                                font_normalized = font(size = fspc,family = font),
+#                                font_row_percentages = font(family = font),
+#                                font_col_percentages = font(family = font),
+#                                arrow_size = 0.09,
+#                                arrow_nudge_from_text = 0.09,
+#                                darkness = 1) 
+# print(cm_dd)
 
 #### Model performance metrics Pfirrmann grades ####
 file <- "../data/pfirrmann_grading_results.csv"
@@ -286,17 +298,16 @@ p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
 print(p6)
-plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_supplementary_material_{filename}.svg")
-# ggsave(plot_name, plot = p6, width = w, height = 9, units = "in")
-
+plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_supplementary_material_{filename}.tiff")
+ggsave(plot_name, plot = p6, width = 10, height = 9, units = "in", dpi = 1200)
 
 df3 <- subset(df3, Metric!="Accuracy")
 df3 <- subset(df3, Metric!="Gwet's AC1")
-df3 <- subset(df3, Metric!="Sensitivity")
-df3 <- subset(df3, Metric!="Specificity")
+# df3 <- subset(df3, Metric!="Sensitivity")
+# df3 <- subset(df3, Metric!="Specificity")
 df3 <- subset(df3, Metric!="Matthew's CC")
 
-p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
+p7 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
   geom_bar(stat = "identity", position = 'dodge', show.legend = show_legend, alpha = 1) +
   geom_errorbar(aes(ymin=Lower_CI, ymax=Upper_CI), size = 0.6, width=.4,
                 position=position_dodge(1)) +
@@ -313,9 +324,36 @@ p6 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.title.x = x_ax_title) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
-print(p6)
-plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_{filename}.svg")
-ggsave(plot_name, plot = p6, width = w, height = 5, units = "in")
+print(p7)
+plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_with_sensitivity_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p7, width = 7, height = 7, units = "in", dpi = 1200)
+
+df3 <- subset(df3, Metric!="Accuracy")
+df3 <- subset(df3, Metric!="Gwet's AC1")
+df3 <- subset(df3, Metric!="Sensitivity")
+df3 <- subset(df3, Metric!="Specificity")
+df3 <- subset(df3, Metric!="Matthew's CC")
+
+p8 <- ggplot(data=df3, aes(x=Level, y = Value, fill=Group)) +
+  geom_bar(stat = "identity", position = 'dodge', show.legend = show_legend, alpha = 1) +
+  geom_errorbar(aes(ymin=Lower_CI, ymax=Upper_CI), size = 0.6, width=.4,
+                position=position_dodge(1)) +
+  ggtitle("Pfirrmann Grades") +
+  labs(y = "Value") +
+  scale_x_discrete(limits = c("All", "L1", "L2", "L3", "L4", "L5")) +
+  facet_wrap(~Metric, ncol = 3, nrow = 3) +
+  # scale_fill_brewer(palette = colours, guide = guide_legend()) +
+  scale_fill_manual(values = pairedC, guide = guide_legend()) +
+  theme_tufte(base_size = base_size) +
+  theme(legend.position=legend_position) +
+  theme(legend.title = legend_title) +
+  theme(text = element_text(size = fs)) +
+  theme(axis.title.x = x_ax_title) +
+  theme(axis.text.x = element_text(angle=0)) +
+  theme(plot.title = element_text(hjust = 0.5))
+print(p8)
+plot_name <- glue("{output_dir}Pfirrmann_grade_metrics_without_sensitivity_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p8, width = w, height = 5, units = "in", dpi = 1200)
 
 #### Model performance metrics Modic changes ####
 
@@ -371,7 +409,7 @@ df$Group <- factor(df$Group,      # Reordering group factor levels
 
 df <- subset(df, Metric!="Matthew's CC")
 
-p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
+p9 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   geom_bar(stat = "identity", position = 'dodge', show.legend = show_legend, alpha = 1) +
   geom_errorbar(aes(ymin=Lower_CI, ymax=Upper_CI), size = 0.6, width=.4,
                 position=position_dodge(1)) +
@@ -388,9 +426,9 @@ p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.title.x = x_ax_title) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
-print(p7)
-plot_name <- glue("{output_dir}mc_metrics_supplementary_{filename}.svg")
-# ggsave(plot_name, plot = p7, width = 10, height = h, units = "in")
+print(p9)
+plot_name <- glue("{output_dir}mc_metrics_supplementary_{filename}.tiff")
+ggsave(plot_name, plot = p9, width = 10, height = 9, units = "in", dpi = 1200)
 
 
 df <- subset(df, Group!="LBP sub-group")
@@ -401,7 +439,7 @@ df <- subset(df, Metric!="Accuracy")
 df <- subset(df, Metric!="Matthew's CC")
 df <- subset(df, Metric!="Gwet's AC1")
 
-p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
+p10 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   geom_bar(stat = "identity", position = 'dodge', show.legend = show_legend, alpha = 1) +
   geom_errorbar(aes(ymin=Lower_CI, ymax=Upper_CI), size = 0.6, width=.4,
                 position=position_dodge(1)) +
@@ -418,11 +456,39 @@ p7 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
   theme(axis.title.x = x_ax_title) +
   theme(axis.text.x = element_text(angle=0)) +
   theme(plot.title = element_text(hjust = 0.5))
-print(p7)
-plot_name <- glue("{output_dir}mc_metrics_with_sensitivity_and_specificity_{filename}.svg")
-ggsave(plot_name, plot = p7, width = w, height = 5, units = "in")
+print(p10)
+plot_name <- glue("{output_dir}mc_metrics_with_sensitivity_and_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p10, width = w, height = 5, units = "in", dpi = 1200)
 
 
+df <- subset(df, Group!="LBP sub-group")
+df <- subset(df, Group!="Large MC")
+df <- subset(df, Metric!="Accuracy")
+df <- subset(df, Metric!="Sensitivity")
+df <- subset(df, Metric!="Specificity")
+df <- subset(df, Metric!="Matthew's CC")
+df <- subset(df, Metric!="Gwet's AC1")
+
+p11 <- ggplot(data=df, aes(x=Level, y = Value, fill=Group)) +
+  geom_bar(stat = "identity", position = 'dodge', show.legend = show_legend, alpha = 1) +
+  geom_errorbar(aes(ymin=Lower_CI, ymax=Upper_CI), size = 0.6, width=.4,
+                position=position_dodge(1)) +
+  ggtitle("Modic Changes") +
+  labs(y = "Value")+
+  scale_x_discrete(limits = c("All", "L1", "L2", "L3", "L4", "L5")) +
+  facet_wrap(~Metric, ncol = 4) +
+  # scale_fill_brewer(palette = "Dark2", guide = guide_legend()) +
+  scale_fill_manual(values = pairedC, guide = guide_legend()) +
+  theme_tufte(base_size = base_size) +
+  theme(legend.position=legend_position) +
+  theme(legend.title = legend_title) +
+  theme(text = element_text(size = fs)) +
+  theme(axis.title.x = x_ax_title) +
+  theme(axis.text.x = element_text(angle=0)) +
+  theme(plot.title = element_text(hjust = 0.5))
+print(p11)
+plot_name <- glue("{output_dir}mc_metrics_without_sensitivity_and_specificity_{filename}.tiff")
+ggsave(plot_name, plot = p11, width = w, height = 5, units = "in", dpi = 1200)
 
 
 
